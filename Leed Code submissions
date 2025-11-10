@@ -1,0 +1,186 @@
+Question: - 1050. Actors and Directors Who Cooperated At Least Three Times
+Answer:
+import pandas as pd
+
+def actors_and_directors(actor_director: pd.DataFrame) -> pd.DataFrame:
+    counts = (
+        actor_director
+        .groupby(["actor_id", "director_id"])
+        .size()
+        .reset_index(name="cnt")
+    )
+    return counts.loc[counts["cnt"] >= 3, ["actor_id", "director_id"]]
+
+
+
+Question: 1667. Fix Names in a Table
+Answer:
+import pandas as pd
+
+def fix_names(users: pd.DataFrame) -> pd.DataFrame:
+    users["name"] = users["name"].str.capitalize()
+    return users.sort_values("user_id")[["user_id", "name"]]
+
+
+Question: 175. Combine Two Tables
+Answer:
+import pandas as pd
+
+def combine_two_tables(person: pd.DataFrame, address: pd.DataFrame) -> pd.DataFrame:
+    result = person.merge(address, on="personId", how="left")
+    return result[["firstName", "lastName", "city", "state"]]
+
+Question: 176. Second Highest Salary
+Answer:
+import pandas as pd
+
+def second_highest_salary(employee: pd.DataFrame) -> pd.DataFrame:
+    unique_salaries = employee["salary"].drop_duplicates().sort_values(ascending=False)
+
+    if len(unique_salaries) < 2:
+        return pd.DataFrame({"SecondHighestSalary": [None]})
+    else:
+        return pd.DataFrame({"SecondHighestSalary": [unique_salaries.iloc[1]]})
+
+Question: 1327. List the Products Ordered in a Period
+Answer:
+import pandas as pd
+
+def list_products(products: pd.DataFrame, orders: pd.DataFrame) -> pd.DataFrame:
+    orders["order_date"] = pd.to_datetime(orders["order_date"])
+    feb2020 = orders[
+        (orders["order_date"].dt.year == 2020) &
+        (orders["order_date"].dt.month == 2)
+    ]
+    totals = feb2020.groupby("product_id", as_index=False)["unit"].sum()
+    enough = totals[totals["unit"] >= 100]
+    result = enough.merge(products[["product_id", "product_name"]], on="product_id", how="left")
+    return result[["product_name", "unit"]]
+
+Question: 1378. Replace Employee ID With The Unique Identifier
+Answer:
+import pandas as pd
+
+def replace_employee_id(employees: pd.DataFrame, employee_uni: pd.DataFrame) -> pd.DataFrame:
+    result = employees.merge(employee_uni, on="id", how="left")
+    return result[["unique_id", "name"]]
+    
+
+Question:550. Game Play Analysis IV
+Answer:
+import pandas as pd
+
+def gameplay_analysis(activity: pd.DataFrame) -> pd.DataFrame:
+    df = activity.copy()
+    df["event_date"] = pd.to_datetime(df["event_date"])
+    first = df.groupby("player_id", as_index=False)["event_date"].min().rename(columns={"event_date":"first_date"})
+    first["next_day"] = first["first_date"] + pd.Timedelta(days=1)
+    merged = first.merge(df[["player_id","event_date"]], left_on=["player_id","next_day"], right_on=["player_id","event_date"], how="left")
+    returned = merged["event_date"].notna().sum()
+    total = first["player_id"].nunique()
+    frac = round(returned / total if total else 0.2)
+    return pd.DataFrame({"fraction":[frac]})
+
+Question:1075. Project Employees I
+Answer:
+import pandas as pd
+
+def project_employees_i(project: pd.DataFrame, employee: pd.DataFrame) -> pd.DataFrame:
+    merged = project.merge(employee, on="employee_id", how="left")
+    result = merged.groupby("project_id", as_index=False)["experience_years"].mean()
+    result["average_years"] = result["experience_years"].round(2)
+    return result[["project_id", "average_years"]]
+
+Question: 185. Department Top Three Salaries
+Answer:
+import pandas as pd
+
+def top_three_salaries(employee: pd.DataFrame, department: pd.DataFrame) -> pd.DataFrame:
+    df = employee.merge(department, left_on="departmentId", right_on="id", how="left", suffixes=("_emp", "_dept"))
+    df["rnk"] = df.groupby("departmentId")["salary"].rank(method="dense", ascending=False)
+    result = df[df["rnk"] <= 3][["name_dept", "name_emp", "salary"]]
+    result = result.rename(columns={"name_dept": "Department", "name_emp": "Employee", "salary": "Salary"})
+    return result
+
+Question:1050. Actors and Directors Who Cooperated At Least Three Times
+Answer:
+SELECT
+    actor_id,
+    director_id
+FROM ActorDirector
+GROUP BY 
+    actor_id,
+    director_id
+HAVING
+    COUNT(*) >= 3;
+
+Question: 1667. Fix Names in a Table
+Answer:
+SELECT
+    user_id,
+    CONCAT(UPPER(LEFT(name, 1)), LOWER(SUBSTRING(name, 2))) AS name 
+FROM Users
+ORDER BY user_id;
+
+Question: 175. Combine Two Tables
+Answer:
+SELECT 
+    p.firstName,
+    p.lastName,
+    a.city,
+    a.state
+FROM Person p 
+LEFT JOIN Address a
+ON p.personID = a.personId;
+
+Question:1327. List the Products Ordered in a Period
+Answer: 
+SELECT 
+    p.product_name,
+    SUM(o.unit) AS unit
+FROM Products p
+JOIN Orders o
+    ON p.product_id = o.product_id
+WHERE o.order_date BETWEEN '2020-02-01' AND '2020-02-29' 
+GROUP BY p.product_name
+HAVING SUM(o.unit) >= 100;
+
+
+Question: 1378. Replace Employee ID With The Unique Identifier
+Answer:
+SELECT 
+    e.unique_id,
+    p.name 
+FROM Employees p 
+LEFT JOIN EmployeeUNI e
+    ON p.id = e.id;
+
+Question: 550. Game Play Analysis IV
+Answer:
+WITH first_login AS (
+    SELECT player_id, MIN(event_date) AS first_date
+    FROM Activity 
+    GROUP BY player_id
+)
+
+SELECT 
+
+Question: 1075. Project Employees I
+Answer:
+SELECT 
+    p.project_id,
+    ROUND(AVG(e.experience_years), 2) AS average_years
+FROM Project p
+JOIN Employee e
+    ON p.employee_id = e.employee_id
+GROUP BY p.project_id;
+
+Question: 185. Department Top Three Salaries
+Answer: 
+SELECT d.name AS 'Department',
+       e1.name AS 'Employee',
+       e1.salary AS 'Salary'
+FROM Employee e1
+JOIN Department d
+ON e1.departmentId = d.id
+WHERE
